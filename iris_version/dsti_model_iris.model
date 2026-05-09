@@ -1,0 +1,303 @@
+% DSTI-modified linear DSGE model translated from Dynare to IRIS Toolbox.
+%
+% Load as a linear model in MATLAB/IRIS, for example:
+%   p = dsti_model_iris_params();
+%   m = Model.fromFile("dsti_model_iris.model", Linear=true, Assign=p);
+%   m = solve(steady(m));
+%
+% Notes:
+% - Dynare timing x(-1), x(+1) is translated to IRIS timing x{-1}, x{1}.
+% - Dynare varexo shocks are declared as IRIS transition shocks.
+% - Simulation and OSR commands are not part of an IRIS model source file;
+%   run those from a separate MATLAB script after loading the model.
+
+!transition_variables
+    c, r, rl, pi, n,
+    r_star, d_exc, asst,
+    pi_star, d_q,
+    q, psi_f, s,
+    exc, p_star, p_f,
+    k_s, k, utlz,
+    inv,
+    fdi, cr_frm,
+    r_k,
+    y,
+    w,
+    mc,
+    pi_h,
+    pi_f,
+    c_h,
+    c_f,
+    ds,
+    i_h,
+    xpt_nr, y_star,
+    xpt_r,
+    mu_w, z,
+    un,
+    pi_w, mu_w_n,
+    l,
+    cr, cr_hh, dsti,
+    c_rtio, rr,
+    cst_fnd,
+    npl,
+    npl_hh, npl_frm,
+    g, prc_cmm,
+    prc_cmm_star,
+    eps_c, eps_uip, eps_inv, eps_tfp, eps_pih, eps_pif, eps_n,
+    eps_xptr, eps_piw, eps_crhh, eps_crfrm, eps_rl, eps_nplhh, eps_nplfrm
+
+!transition_shocks
+    u_c, u_uip, u_inv, u_fdi, u_tfp, u_pih, u_pif, u_xptr,
+    u_n, u_piw, u_crhh, u_crfrm, u_rl,
+    u_nplhh, u_nplfrm, u_g, u_r, u_crtio, u_rr,
+    u_ystar, u_pistar, u_rstar, u_pcmmstar, u_dsti
+
+!parameters
+    h, sigma, alpha_p, bar_wlc, prm_crhh,
+    phi_ex, phi_asst, rho_uip,
+    alpha_fc,
+    delta,
+    alpha_fdi, rho_inv,
+    rho_fdi,
+    alpha_utlz,
+    alpha_ks, rho_tfp,
+    ups_n, ups_k,
+    gamma_h, beta, kappa_h, rho_pih,
+    gamma_f, kappa_f, ups_f, rho_pif,
+    eta,
+    rho_xptr,
+    rho_n,
+    varphi,
+    vartheta_z,
+    gamma_w, kappa_w, rho_piw,
+    zeta,
+    lambda1_hh, lambda2_hh, lambda3_hh, lambda4_hh, lambda5_hh, rho_crhh,
+    lambda1_frm, lambda2_frm, lambda3_frm, lambda4_frm, rho_crfrm,
+    kappa_rl, rho_rl,
+    nu1, nu2, nu3,
+    gamma1, gamma2,
+    xi_hh1, xi_hh2, xi_hh3, rho_nplhh,
+    xi_frm1, xi_frm2, xi_frm3, rho_nplfrm,
+    iota_g, iota_gfdi, iota_gx, iota_gcop,
+    rho_r, chi_pi, chi_y, chi_dexc,
+    baromega1, baromega2, baromega3,
+    upsilon1, upsilon2, upsilon3,
+    varepsilon1, varepsilon2, varepsilon3,
+    rho_ystar,
+    rho_pistar,
+    rho_rstar,
+    rho_pcmmstar,
+    c_y, g_y, i_y, xptnr_y, xptr_y, utlz_y,
+    m_y, fdi_y,
+    alpha_r,
+    theta_h, theta_f, theta_w, theta_rl, kappa
+
+!links
+    alpha_utlz := (1-kappa)/kappa;
+    kappa_h := ((1-theta_h)*(1-theta_h*beta))/theta_h;
+    kappa_f := ((1-theta_f)*(1-theta_f*beta))/theta_f;
+    kappa_w := ((1-theta_w)*(1-theta_w*beta))/theta_w;
+    kappa_rl := ((1-theta_rl)*(1-theta_rl*beta))/theta_rl;
+
+!transition_equations
+
+    '1. Forward-looking consumption IS equation'
+    c - h*c{-1} = (c{1} - h*c) - (sigma^(-1))*(1-h)*((alpha_p)*(r - pi{1}) + (1-alpha_p)*(rl - pi{1})) + (sigma^(-1))*(sigma-1)*(bar_wlc)*(n - n{1}) + prm_crhh*cr_hh + eps_c;
+
+    '1a. Consumption shock'
+    eps_c = u_g + u_c;
+
+    '2. UIP condition'
+    r - r_star = (1 - phi_ex)*d_exc{1} - phi_ex*d_exc - phi_asst*asst + eps_uip;
+
+    '2a. UIP shock'
+    eps_uip = rho_uip*eps_uip{-1} + u_uip;
+
+    '3. Nominal depreciation identity'
+    d_exc = pi - pi_star + d_q;
+
+    '4. Real exchange rate'
+    q = psi_f + (1 - alpha_fc)*s;
+
+    '5. Law-of-one-price gap'
+    psi_f = exc + p_star + p_f;
+
+    '6. Effective capital supply'
+    k_s = k{-1} + utlz;
+
+    '7. Capital accumulation'
+    k = (1 - delta)*k{-1} + delta*inv;
+
+    '8. Investment'
+    inv = alpha_fdi*(fdi + q) + (1-alpha_fdi)*cr_frm + eps_inv;
+
+    '8a. Investment shock'
+    eps_inv = rho_inv*eps_inv{-1} + u_inv;
+
+    '9. Foreign direct investment'
+    fdi = rho_fdi*fdi{-1} + u_fdi;
+
+    '10. Capital utilization'
+    utlz = alpha_utlz*r_k;
+
+    '11. Domestic production'
+    y = alpha_ks*k_s + (1-alpha_ks)*n + eps_tfp;
+
+    '11a. Productivity shock'
+    eps_tfp = rho_tfp*eps_tfp{-1} + u_tfp;
+
+    '12. Capital rental rate'
+    r_k = -(k_s - n) + w;
+
+    '13. Real marginal cost'
+    mc = (1-alpha_ks)*w + alpha_ks*r_k + ((1-alpha_ks)*ups_n + alpha_ks*ups_k)*r + alpha_fc*s - eps_tfp;
+
+    '14. Domestic inflation Phillips curve'
+    pi_h - gamma_h*pi_h{-1} = beta*(pi_h{1} - gamma_h*pi_h) + kappa_h*mc + eps_pih;
+
+    '14a. Domestic inflation shock'
+    eps_pih = rho_pih*eps_pih{-1} + u_pih;
+
+    '15. Import inflation Phillips curve'
+    pi_f - gamma_f*pi_f{-1} = beta*(pi_f{1} - gamma_f*pi_f) + kappa_f*(psi_f + ups_f*r) + eps_pif;
+
+    '15a. Import inflation shock'
+    eps_pif = rho_pif*eps_pif{-1} + u_pif;
+
+    '16. Domestic consumption input'
+    c_h = c + eta*alpha_fc*s;
+
+    '17. Imported consumption input'
+    c_f = c + eta*(1-alpha_fc)*s;
+
+    '18. CPI inflation'
+    pi = pi_h + alpha_fc*ds;
+
+    '19. Terms-of-trade change from inflation gap'
+    ds = pi_f - pi_h;
+
+    '20. Investment input'
+    i_h = inv;
+
+    '21. Non-resource exports'
+    xpt_nr = eta*(s + psi_f) + y_star;
+
+    '22. Resource exports'
+    xpt_r = y_star + eps_xptr;
+
+    '22a. Resource export shock'
+    eps_xptr = rho_xptr*eps_xptr{-1} + u_xptr;
+
+    '23. Wage markup'
+    mu_w = w - (z + varphi*n + eps_n);
+
+    '23a. Labor supply shock'
+    eps_n = rho_n*eps_n{-1} + u_n;
+
+    '24. Unemployment relation'
+    mu_w = varphi*un;
+
+    '25. Endogenous reference shifter'
+    z = (1-vartheta_z)*z{-1} + vartheta_z*(-eps_c + (sigma/(1 - h))*(c - h*c{-1}));
+
+    '26. Real wage process'
+    w = w{-1} + pi_w - pi;
+
+    '27. Wage Phillips curve'
+    pi_w - gamma_w*pi_w{-1} = beta*(pi_w{1} - gamma_w*pi_w) + kappa_w*(mu_w - mu_w_n);
+
+    '27a. Wage inflation shock'
+    eps_piw = rho_piw*eps_piw{-1} + u_piw;
+
+    '28. Labor force identity'
+    l = n + un;
+
+    '29. Aggregate credit'
+    cr = zeta*cr_hh + (1-zeta)*cr_frm;
+
+    '30. Household credit'
+    cr_hh = lambda1_hh*y - lambda2_hh*rl - lambda3_hh*c_rtio - lambda4_hh*rr + lambda5_hh*dsti + eps_crhh;
+
+    '30a. Household credit shock'
+    eps_crhh = rho_crhh*eps_crhh{-1} + u_crhh;
+
+    '31. Firm credit'
+    cr_frm = lambda1_frm*y - lambda2_frm*rl - lambda3_frm*c_rtio - lambda4_frm*rr + eps_crfrm;
+
+    '31a. Firm credit shock'
+    eps_crfrm = rho_crfrm*eps_crfrm{-1} + u_crfrm;
+
+    '32. Lending-rate adjustment'
+    rl - rl{-1} = beta*(rl{1} - rl) - kappa_rl*(rl - cst_fnd) + eps_rl;
+
+    '32a. Lending-rate shock'
+    eps_rl = rho_rl*eps_rl{-1} + u_rl;
+
+    '33. Funding cost'
+    cst_fnd = r + nu1*npl + nu2*c_rtio + nu3*rr;
+
+    '34. Aggregate nonperforming loans'
+    npl = gamma1*npl_hh + gamma2*npl_frm;
+
+    '35. Household nonperforming loans'
+    npl_hh = xi_hh1*npl_hh{-1} - xi_hh2*y + xi_hh3*d_exc + eps_nplhh;
+
+    '35a. Household NPL shock'
+    eps_nplhh = rho_nplhh*eps_nplhh{-1} + u_nplhh;
+
+    '36. Firm nonperforming loans'
+    npl_frm = xi_frm1*npl_frm{-1} - xi_frm2*y + xi_frm3*d_exc + eps_nplfrm;
+
+    '36a. Firm NPL shock'
+    eps_nplfrm = rho_nplfrm*eps_nplfrm{-1} + u_nplfrm;
+
+    '37. Government spending'
+    g = iota_g*g{-1} + iota_gfdi*fdi + iota_gx*xpt_r + iota_gcop*prc_cmm + u_g;
+
+    '38. Monetary policy'
+    r = rho_r*r{-1} + (1 - rho_r)*(chi_pi*pi + chi_y*y + chi_dexc*d_exc) + u_r;
+
+    '39. Capital requirement'
+    c_rtio = baromega1*c_rtio{-1} + (1-baromega1)*(baromega2*y + baromega3*cr) + u_crtio;
+
+    '40. Reserve requirement'
+    rr = upsilon1*rr{-1} + (1-upsilon1)*(upsilon2*y + upsilon3*cr) + u_rr;
+
+    '40-1. DSTI rule'
+    dsti = varepsilon1*dsti{-1} + (1-varepsilon1)*(varepsilon2*pi_w - varepsilon3*cr_hh) + u_dsti;
+
+    '41. Foreign output'
+    y_star = rho_ystar*y_star{-1} + u_ystar;
+
+    '42. Foreign inflation'
+    pi_star = rho_pistar*pi_star{-1} + u_pistar;
+
+    '43. Foreign interest rate'
+    r_star = rho_rstar*r_star{-1} + u_rstar;
+
+    '44. Foreign commodity price'
+    prc_cmm_star = rho_pcmmstar*prc_cmm_star{-1} + u_pcmmstar;
+
+    '45. Goods-market equilibrium'
+    y = c_y*c + g_y*g + i_y*i_h + xptnr_y*xpt_nr + xptr_y*xpt_r + utlz_y*utlz;
+
+    '46. Net foreign assets'
+    asst = (1/beta)*asst{-1} + xptnr_y*(xpt_nr - alpha_fc*s) + xptr_y*(q + prc_cmm + xpt_r) - m_y*(q + c_f) + fdi_y*(q + fdi);
+
+    '47. Domestic commodity price'
+    prc_cmm = alpha_r*prc_cmm_star + (1 - alpha_r)*prc_cmm{-1};
+
+    '48. Change in terms of trade'
+    ds = s - s{-1};
+
+    '49. Wage-markup shock term'
+    mu_w_n = 100*eps_piw;
+
+    '50. Foreign price-level inflation'
+    pi_star = p_star - p_star{-1};
+
+    '51. Import price-level inflation'
+    pi_f = p_f - p_f{-1};
+
+    '52. Real exchange-rate change'
+    d_q = q - q{-1};
